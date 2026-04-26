@@ -165,13 +165,15 @@ async def get_status(job_id: str):
     job = _jobs.get(job_id)
     if not job:
         raise HTTPException(404, f"Job {job_id} not found")
+    state = job.get("state") or {}
     return {
-        "job_id":     job_id,
-        "status":     job["status"],
-        "messages":   job.get("messages", []),
-        "errors":     job.get("errors", []),
-        "started_at": job.get("started_at"),
-        "completed_at": job.get("completed_at"),
+        "job_id":          job_id,
+        "status":          job["status"],
+        "messages":        job.get("messages", []),
+        "errors":          job.get("errors", []),
+        "completed_steps": state.get("completed_steps") or [],
+        "started_at":      job.get("started_at"),
+        "completed_at":    job.get("completed_at"),
     }
 
 
@@ -180,18 +182,20 @@ async def get_results(job_id: str):
     """Get full assessment results."""
     job = _get_complete_job(job_id)
     state = job["state"]
+    scenario_obj = state.get("scenario") or {}
     return {
         "job_id":          job_id,
-        "scenario":        state.get("scenario", {}).get("name", "Unknown"),
+        "scenario":        scenario_obj.get("name", "Unknown"),
         "total_events":    len(state.get("fused_events") or []),
         "by_status":       _count_by(state.get("fused_events") or [], "burn_status"),
         "by_access":       _count_by(state.get("fused_events") or [], "accessibility"),
         "fusion_insights": len(state.get("fusion_insights") or []),
-        "conflicts":       state.get("conflicts_detected", 0),
+        "conflicts":       state.get("conflicts_detected") or 0,
         "processing_s":    state.get("processing_time_s"),
         "report_s3":       state.get("report_s3_uri"),
-        "completed_steps": state.get("completed_steps", []),
-        "mission_impact":  state.get("mission_impact"),
+        "completed_steps": state.get("completed_steps") or [],
+        "mission_impact":  state.get("mission_impact") or {},
+        "errors":          job.get("errors") or [],
     }
 
 
@@ -431,13 +435,11 @@ async def get_provenance(job_id: str, event_id: str):
 def _get_complete_job(job_id: str) -> dict:
     job = _jobs.get(job_id)
     if not job:
-        raise HTTPException(404, f"Job {job_id} not found")
-    if job["status"] == "running":
-        raise HTTPException(202, "Pipeline still running")
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+    if job["status"] in ("running", "queued"):
+        raise HTTPException(status_code=202, detail="Pipeline still running")
     if job["status"] == "failed":
-        raise HTTPException(500, f"Pipeline failed: {job.get('errors')}")
-    if job["status"] == "queued":
-        raise HTTPException(202, "Pipeline queued")
+        raise HTTPException(status_code=500, detail=f"Pipeline failed: {job.get('errors')}")
     return job
 
 
