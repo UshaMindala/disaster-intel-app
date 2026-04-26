@@ -3,9 +3,12 @@ Disaster Intelligence System — Configuration
 All settings loaded from environment variables.
 """
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load .env from the same directory as this file (files/.env).
+# override=True ensures this wins over any stale shell exports.
+load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
 # ── AWS ──────────────────────────────────────────────────────
 AWS_REGION     = os.getenv("AWS_DEFAULT_REGION", "us-east-1").strip('"').strip("'")
