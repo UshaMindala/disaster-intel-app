@@ -1,45 +1,20 @@
 """
 Disaster Intelligence System — Configuration
-Settings loaded from Streamlit secrets (cloud) or environment variables (local).
+All settings loaded from environment variables.
 """
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-
-def _secret(key: str, default: str = "") -> str:
-    """Read from st.secrets first (Streamlit Cloud), fall back to env var."""
-    try:
-        import streamlit as st
-        val = st.secrets.get(key)
-        if val is not None:
-            return str(val).strip('"').strip("'")
-    except Exception:
-        pass
-    return os.getenv(key, default).strip('"').strip("'")
-
-
 # ── AWS ──────────────────────────────────────────────────────
-AWS_REGION     = _secret("AWS_DEFAULT_REGION", "us-east-1")
-AWS_ACCOUNT_ID = _secret("AWS_ACCOUNT_ID", "")
+AWS_REGION     = os.getenv("AWS_DEFAULT_REGION", "us-east-1").strip('"').strip("'")
+AWS_ACCOUNT_ID = os.getenv("AWS_ACCOUNT_ID", "371542051390").strip('"').strip("'")
 
-# Inject AWS credentials into env so boto3 picks them up automatically
-# (required when running on Streamlit Cloud where there is no ~/.aws)
-_key    = _secret("AWS_ACCESS_KEY_ID")
-_secret_key = _secret("AWS_SECRET_ACCESS_KEY")
-_token  = _secret("AWS_SESSION_TOKEN")
-
-if _key and not os.getenv("AWS_ACCESS_KEY_ID"):
-    os.environ["AWS_ACCESS_KEY_ID"]     = _key
-    os.environ["AWS_SECRET_ACCESS_KEY"] = _secret_key
-    if _token:
-        os.environ["AWS_SESSION_TOKEN"] = _token
-os.environ.setdefault("AWS_DEFAULT_REGION", AWS_REGION)
-
-# ── S3 Buckets ────────────────────────────────────────────────
-S3_BUCKET        = _secret("S3_BUCKET_NAME", "")
-S3_VECTOR_BUCKET = _secret("S3_VECTOR_BUCKET_NAME", "")
+S3_BUCKET      = os.getenv("S3_BUCKET_NAME",
+                    "twelvelabs-bedrock-workshop-workshopbucket-yaqtzrqyuzku").strip('"').strip("'")
+S3_VECTOR_BUCKET = os.getenv("S3_VECTOR_BUCKET_NAME",
+                    "twelvelabs-aws-vectorbucket-kfzwf0z86w95").strip('"').strip("'")
 
 # S3 path prefixes
 S3_VIDEOS_PFX      = "videos"
